@@ -141,3 +141,10 @@ class Connection:
     def next_event(self):
         result, self._receive_buffer = decode(self._receive_buffer)
         return result
+
+    def events(self):
+        while True:
+            event = self.next_event()
+            if event is NEED_DATA:
+                break
+            yield event

@@ -76,6 +76,26 @@ def test_tnetstring(payload):
         conn.receive_data(b"Hello, world!")
 
 
+@given(Types())
+def test_events(payload):
+    src = Connection()
+    dst = Connection()
+    src.send_data(payload)
+    data = src.data_to_send()
+
+    assert tuple(dst.events()) == ()
+    dst.receive_data(data)
+    events = tuple(dst.events())
+    assert len(events) == 1
+    cmp(events[0], payload)
+    dst.receive_data(data)
+    dst.receive_data(data)
+    events = tuple(dst.events())
+    assert len(events) == 2
+    cmp(events[0], payload)
+    cmp(events[1], payload)
+
+
 @given(BasicTypes())
 @example(b"Hello, world!")
 def test_incomplete(payload):
