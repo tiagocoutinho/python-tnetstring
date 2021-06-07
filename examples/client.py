@@ -8,21 +8,16 @@ async def main():
         '127.0.0.1', 8888)
     conn = Connection()
 
-    data = conn.send({
-        "jsonrpc": "2.0",
-        "method": "reverse",
-        "params": ["hello"],
-        "id": 1
-    })
-    writer.write(data)
+    data = {b"message": b"The quick brown fox jumps over the lazy dog."}
+    conn.send_data(data)
+    writer.write(conn.data_to_send())
 
     reply = NEED_DATA
     while reply is NEED_DATA:
-        conn.receive(await reader.read(1024))
+        conn.receive_data(await reader.read(1024))
         reply = conn.next_event()
     print(f'Received: {reply}')
-
-    print('Close the connection')
+    assert reply == data
     writer.close()
 
 asyncio.run(main())

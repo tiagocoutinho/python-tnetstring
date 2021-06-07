@@ -52,26 +52,28 @@ def test_tnetstring(payload):
     assert conn.trailing_data == (b"", False)
     assert conn.next_event() is NEED_DATA
     assert conn.trailing_data == (b"", False)
-    data = conn.send(payload)
+    conn.send_data(payload)
+    data = conn.data_to_send()
     assert conn.trailing_data == (b"", False)
-    conn.receive(data)
+    conn.receive_data(data)
     assert conn.trailing_data == (data, False)
     cmp(conn.next_event(), payload)
     assert conn.trailing_data == (b"", False)
     assert conn.next_event() is NEED_DATA
     assert conn.trailing_data == (b"", False)
 
-    data = conn.send(payload)
+    conn.send_data(payload)
+    data = conn.data_to_send()
     assert conn.trailing_data == (b"", False)
-    conn.receive(data)
+    conn.receive_data(data)
     assert conn.trailing_data == (data, False)
     cmp(conn.next_event(), payload)
     assert conn.trailing_data == (b"", False)
 
-    conn.receive(b"")
+    conn.receive_data(b"")
     assert conn.trailing_data == (b"", True)
     with pytest.raises(RuntimeError):
-        conn.receive(b"Hello, world!")
+        conn.receive_data(b"Hello, world!")
 
 
 @given(BasicTypes())
@@ -81,24 +83,25 @@ def test_incomplete(payload):
 
     assert conn.trailing_data == (b"", False)
     assert conn.next_event() is NEED_DATA
-    data = conn.send(payload)
+    conn.send_data(payload)
+    data = conn.data_to_send()
     assert conn.trailing_data == (b"", False)
 
-    conn.receive(data[0:1])
+    conn.receive_data(data[0:1])
     assert conn.trailing_data == (data[0:1], False)
     assert conn.next_event() is NEED_DATA
     assert conn.trailing_data == (data[0:1], False)
 
     assume(len(data) > 4)
-    conn.receive(data[1:3])
+    conn.receive_data(data[1:3])
     assert conn.trailing_data == (data[0:3], False)
     assert conn.next_event() is NEED_DATA
     assert conn.trailing_data == (data[0:3], False)
-    conn.receive(data[3:-1])
+    conn.receive_data(data[3:-1])
     assert conn.trailing_data == (data[0:-1], False)
     assert conn.next_event() is NEED_DATA
     assert conn.trailing_data == (data[0:-1], False)
-    conn.receive(data[-1:])
+    conn.receive_data(data[-1:])
     assert conn.trailing_data == (data, False)
     cmp(conn.next_event(), payload)
     assert conn.trailing_data == (b"", False)
@@ -110,9 +113,9 @@ def test_close():
     conn = Connection()
 
     assert conn.next_event() is NEED_DATA
-    conn.receive(b"")
+    conn.receive_data(b"")
     with pytest.raises(RuntimeError):
-        conn.receive(b"Hello, world!")
+        conn.receive_data(b"Hello, world!")
 
 
 @pytest.mark.parametrize(
@@ -122,7 +125,7 @@ def test_close():
     ids=["dtype", "int","float", "bool", "dict"])
 def test_receive_bad_data(data, error):
     conn = Connection()
-    conn.receive(data)
+    conn.receive_data(data)
 
     with pytest.raises(error):
         conn.next_event()
@@ -135,4 +138,4 @@ def test_receive_bad_data(data, error):
 def test_send_bad_data(data, encoding, error):
     conn = Connection(encoding=encoding)
     with pytest.raises(error):
-        conn.send(data)
+        conn.send_data(data)

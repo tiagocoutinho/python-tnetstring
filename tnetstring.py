@@ -115,16 +115,22 @@ class Connection:
         self._encoding_errors = encoding_errors
         self._receive_buffer = b""
         self._receive_buffer_closed = False
-        self._send_buffer = b""
+        self._send_buffer = []
 
     @property
     def trailing_data(self):
         return self._receive_buffer, self._receive_buffer_closed
 
-    def send(self, event):
-        return encode(event, encoding=self._encoding, errors=self._encoding_errors)
+    def send_data(self, event):
+        data = encode(event, encoding=self._encoding, errors=self._encoding_errors)
+        self._send_buffer.append(data)
 
-    def receive(self, data):
+    def data_to_send(self):
+        data = b"".join(self._send_buffer)
+        self._send_buffer = []
+        return data
+
+    def receive_data(self, data):
         if data:
             if self._receive_buffer_closed:
                 raise RuntimeError("received close, then received more data?")
