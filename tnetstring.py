@@ -15,6 +15,7 @@ FALSE = b"5:false!"
 
 
 def encode(data, encoding="utf-8", errors="strict"):
+    """encode python data into a tnetstring bytes"""
     if data is None:
         return NULL
     elif data is True:
@@ -57,6 +58,7 @@ def decode_pair(data):
 
 
 def decode(data):
+    """Decode tnetstring encoded binary data"""
     if not data:
         return NEED_DATA, data
     try:
@@ -119,18 +121,32 @@ class Connection:
 
     @property
     def trailing_data(self):
+        """Data that has been received, but not yet processed, represented as
+        a tuple with two elements, where the first is a byte-string containing
+        the unprocessed data itself, and the second is a bool that is True if
+        the receive connection was closed.
+        """
         return self._receive_buffer, self._receive_buffer_closed
 
     def send_data(self, event):
+        """Convert a high-level event into bytes that can be sent to the peer
+        and stores it for future consumption by `data_to_send()`
+        """
         data = encode(event, encoding=self._encoding, errors=self._encoding_errors)
         self._send_buffer.append(data)
 
     def data_to_send(self):
+        """Consumes data previously feed by `send_data()` as `bytes`"""
         data = b"".join(self._send_buffer)
         self._send_buffer = []
         return data
 
     def receive_data(self, data):
+        """Feed network data into the connection instance.
+
+        This does not actually do any processing on the data, just stores
+        it. To trigger processing, you have to call `event()`/`next_event()`
+        """
         if data:
             if self._receive_buffer_closed:
                 raise RuntimeError("received close, then received more data?")
@@ -139,10 +155,26 @@ class Connection:
             self._receive_buffer_closed = True
 
     def next_event(self):
+        """Parse the next event out of our receive buffer, update our internal
+        state, and return it.
+
+        This is a mutating operation -- think of it like calling :func:`next`
+        on an iterator.
+
+        Returns one of two things:
+            1) An event object.
+            2) The special constant `NEED_DATA`, which indicates that
+               you need to read more data from your stream and pass it to
+               `receive_data` before this method will be able to return
+               any more events.
+
+        Raises ValueError or TypeError if the data feed is malformed
+        """
         result, self._receive_buffer = decode(self._receive_buffer)
         return result
 
     def events(self):
+        """A generator that yields pending events."""
         while True:
             event = self.next_event()
             if event is NEED_DATA:
