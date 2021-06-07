@@ -5,7 +5,7 @@
 # Copyright (c) 2021 Tiago Coutinho
 # Distributed under the GPLv3 license. See LICENSE for more info.
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 NEED_DATA = object()
 CONNECTION_CLOSED = object()
