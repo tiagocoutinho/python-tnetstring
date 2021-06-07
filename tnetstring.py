@@ -8,6 +8,7 @@
 __version__ = "0.2.0"
 
 NEED_DATA = object()
+CONNECTION_CLOSED = object()
 
 NULL = b"0:~"
 TRUE = b"4:true!"
@@ -171,12 +172,14 @@ class Connection:
         Raises ValueError or TypeError if the data feed is malformed
         """
         result, self._receive_buffer = decode(self._receive_buffer)
+        if result is NEED_DATA and self._receive_buffer_closed:
+            result = CONNECTION_CLOSED
         return result
 
     def events(self):
         """A generator that yields pending events."""
         while True:
             event = self.next_event()
-            if event is NEED_DATA:
+            if event is NEED_DATA or event is CONNECTION_CLOSED:
                 break
             yield event
